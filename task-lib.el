@@ -14,13 +14,11 @@
   ((tname :initarg :tname) (tfunc :initarg :tfunc) (targs :initarg :targs) (tcvar :initarg :tcvar)
    (tlock :initarg :tlock) (tbuff :initarg :tbuff) (tthrd :initarg :tthrd) (trslt :initarg :trslt)))
 
-(defmethod get-task-name ((obj task)) (oref obj tname))
-(defmethod get-task-args ((obj task)) (oref obj targs))
-(defmethod get-task-cvar ((obj task)) (oref obj tcvar))
-(defmethod get-task-lock ((obj task)) (oref obj tlock))
-(defmethod get-task-buff ((obj task)) (oref obj tbuff))
-(defmethod get-task-thrd ((obj task)) (oref obj tthrd))
-(defmethod get-task-rslt ((obj task)) (oref obj trslt))
+(dolist (method (loop for tag in '(tname tfunc targs tcvar tlock tbuff tthrd trslt)
+		      collect (let* ((slot (substring (symbol-name tag) 1))
+				     (func (intern (concat "get-task-" slot))))
+				`(defmethod ,func ((obj task)) (oref obj ,tag)))))
+  (eval method))
 
 (defun create-task (name func &rest args)
   (let* ((mutex (make-mutex name))
