@@ -1,5 +1,5 @@
 
-(load (expand-file-name "~/elisp/task-lib") nil t)
+(load (expand-file-name "./task-lib") nil t)
 
 (defun find-type-f-lisp (directory fexp)
   (let (files dirs (current directory) (match "[^.]$"))
