@@ -1,4 +1,5 @@
 
+(require 'cl)
 (require 'eieio)
 
 (setq debug-buffer (with-current-buffer (get-buffer-create "*debug-buffer*") (erase-buffer) (current-buffer)))
