@@ -28,7 +28,7 @@
   (start-task task-2)
   (while (or (thread-alive-p (get-task-thrd (get-task "task-1")))
 	     (thread-alive-p (get-task-thrd (get-task "task-2"))))
-    (sit-for 1))
+    (thread-yield))
   (exit-task (get-task "task-1"))
   (exit-task (get-task "task-2"))
   (pop-to-buffer debug-buffer))

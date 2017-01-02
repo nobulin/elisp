@@ -13,7 +13,7 @@
 (defun put-debug-log (string)
   (with-current-buffer debug-buffer
     (insert-before-markers (format "%s - %s\n"
-				   (format-time-string "%H:%M:%S.%3N")
+				   (format-time-string "%H:%M:%S.%6N")
 				   string))))
 
 (setq task-list nil)
@@ -86,11 +86,11 @@
 (defmethod wait-start-task ((obj task))
   (put-debug-log (format "wait-start-task(obj) - %S" obj))
   (while (with-mutex (oref obj tlock) (not (oref obj tcvar)))
-    (sit-for 1)))
+    (thread-yield)))
 
 (defmethod exit-task ((obj task))
   (put-debug-log (format "exit-task(obj) - %S" obj))
-  (while (thread-alive-p (oref obj tthrd)) (sit-for 1))
+  (while (thread-alive-p (oref obj tthrd)) (thread-yield))
   (kill-buffer (oref obj tbuff))
   (setq task-list (delete obj task-list)))
 
@@ -102,14 +102,14 @@
 		   (mapcar #'(lambda (obj)
 			       (if (string= name (get-task-name obj)) 1 0))
 			   task-list)))
-    (sit-for 1)))
+    (thread-yield)))
 
 ;; Temporary measure for condition-wait
 ;; sexp is reference to global variable
 (defun task-cond-wait (lock sexp)
   (put-debug-log (format "task-cond-wait(lock,sexp) - %S,%S" lock sexp))
   (while (with-mutex lock (eval sexp))
-    (sit-for 1)))
+    (thread-yield)))
       
 ;; Temporary measure for condition-notify
 ;; sexp is setting to global variable
