@@ -16,4 +16,4 @@
 (while (let (result)
 	 (dolist (name (mapcar 'thread-name (all-threads)) result)
 	   (and (string= "__thread-func" name) (setq result t))))
-  (sit-for 1))
+  (thread-yield))
