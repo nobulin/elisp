@@ -11,10 +11,11 @@
 	(current-buffer)))
 
 (defun put-debug-log (string)
-  (with-current-buffer debug-buffer
-    (insert-before-markers (format "%s - %s\n"
-				   (format-time-string "%H:%M:%S.%6N")
-				   string))))
+  (let ((mes (format "%s - %s" (format-time-string "%H:%M:%S.%6N") string)))
+    (if noninteractive
+	(message mes)
+      (with-current-buffer debug-buffer
+	(insert-before-markers mes "\n")))))
 
 (setq task-list nil)
 (defun task-list-init () (setq task-list nil))
