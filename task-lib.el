@@ -31,7 +31,7 @@
    (tthrd :initarg :tthrd)
    (trslt :initarg :trslt)))
 
-;; Creating accessors
+;; Define accessors
 (defmethod get-task-name ((obj task)) (oref obj tname))
 (defmethod get-task-func ((obj task)) (oref obj tfunc))
 (defmethod get-task-args ((obj task)) (oref obj targs))
@@ -48,6 +48,18 @@
 (defmethod set-task-buff ((obj task) value) (oset obj tbuff value))
 (defmethod set-task-thrd ((obj task) value) (oset obj tthrd value))
 (defmethod set-task-rslt ((obj task) value) (oset obj trslt value))
+
+(defun get-task-param (slot)
+  (let* ((tid (get-task))
+	 (slot-name (symbol-name slot))
+	 (method (intern (concat "get-task-" slot-name))))
+    (funcall method tid)))
+
+(defun set-task-param (slot value)
+  (let* ((tid (get-task))
+	 (slot-name (symbol-name slot))
+	 (method (intern (concat "set-task-" slot-name))))
+    (funcall method tid value)))
 
 ;; Create a thread and instance of task object
 (defun create-task (name func &rest args)
@@ -71,38 +83,40 @@
 
 ;; Obtain an instance that manages a thread
 (defun get-task (&optional name)
-  (put-debug-log (format "get-task(name) - %S" name))
+  ;;(put-debug-log (format "get-task(name) - %S" name))
   (let ((task-name (if name name (thread-name (current-thread)))))
     (dolist (obj task-list)
       (when (string= task-name (get-task-name obj))
-	(put-debug-log (format "get-task - %S" obj))
+	;;(put-debug-log (format "get-task - %S" obj))
 	(return obj)))))
 
 ;; Start waiting thread by wait-start-task
-(defmethod start-task ((obj task))
-  (put-debug-log (format "start-task(obj) - %S" obj))
-  (with-mutex (oref obj tlock) (oset obj tcvar t)))
+(defun start-task (name)
+  (put-debug-log (format "start-task(name) - %s" name))
+  (let ((tid (get-task name)))
+    (with-mutex (get-task-lock tid) (set-task-cvar tid t))))
 
 ;; Wait until start-task is called
-(defmethod wait-start-task ((obj task))
-  (put-debug-log (format "wait-start-task(obj) - %S" obj))
-  (while (with-mutex (oref obj tlock) (not (oref obj tcvar)))
+(defun wait-start-task ()
+  (put-debug-log (format "wait-start-task() - %S" (get-task)))
+  (while (with-mutex (get-task-param 'lock) (not (get-task-param 'cvar)))
+    (sit-for 0.5)
     (thread-yield)))
 
-(defmethod exit-task ((obj task))
-  (put-debug-log (format "exit-task(obj) - %S" obj))
-  (while (thread-alive-p (oref obj tthrd)) (thread-yield))
-  (kill-buffer (oref obj tbuff))
-  (setq task-list (delete obj task-list)))
+(defun exit-task (name)
+  (put-debug-log (format "exit-task(name) - %s" name))
+  (let ((tid (get-task name)))
+    (while (thread-alive-p (get-task-thrd tid))
+      (sit-for 0.5)
+      (thread-yield))
+    (kill-buffer (get-task-buff tid))
+    (setq task-list (delete tid task-list))))
 
 ;; Multiplex number for not starting thread too much
-(defun wait-count-task (count name)
-  (put-debug-log (format "wait-count-task(count,name) - %d,%s" count name))
-  (while (< count
-	    (apply #'+
-		   (mapcar #'(lambda (obj)
-			       (if (string= name (get-task-name obj)) 1 0))
-			   task-list)))
+(defun wait-count-task (count)
+  (put-debug-log (format "wait-count-task(count) - %d" count))
+  (while (< count (1- (length (all-threads))))
+    (sit-for 0.5)
     (thread-yield)))
 
 ;; Temporary measure for condition-wait
@@ -111,7 +125,7 @@
   (put-debug-log (format "task-cond-wait(lock,sexp) - %S,%S" lock sexp))
   (while (with-mutex lock (eval sexp))
     (thread-yield)))
-      
+
 ;; Temporary measure for condition-notify
 ;; sexp is setting to global variable
 (defun task-cond-notify (lock sexp)
