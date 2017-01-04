@@ -2,7 +2,7 @@
 (load (expand-file-name "./task-lib") nil t)
 
 (defun find-type-f-lisp (directory fexp)
-  (let (files dirs (current directory) (match "[^.]$"))
+  (let (files dirs (current directory) (match "[^.]$") (case-fold-search nil))
     (while (progn (dolist (file (directory-files current t match))
 		    (if (file-directory-p file)
 			(push file dirs)
@@ -24,8 +24,11 @@
 	  (sit-for 0.1)
 	  (let ((line (count-lines (point-min) (point)))
 		(found (buffer-substring-no-properties (line-beginning-position)
-						       (progn (forward-line) (point)))))
-	    (with-current-buffer buffer (insert (format "%s:%d: %s" name line found)))))))))
+						       (progn
+							 (forward-line)
+							 (point)))))
+	    (with-current-buffer buffer
+	      (insert (format "%s:%d: %s" name line found)))))))))
 
 (defun find-grep-thread (dir fexp gexp)
   (interactive "Ddir: \nsfilename regexp: \nssearch keyword: ")

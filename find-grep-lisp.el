@@ -1,6 +1,6 @@
 
 (defun find-type-f-lisp (directory fexp)
-  (let (files dirs (current directory) (match "[^.]$"))
+  (let (files dirs (current directory) (match "[^.]$") (case-fold-search nil))
     (while (progn (dolist (file (directory-files current t match))
 		    (if (file-directory-p file)
 			(push file dirs)
