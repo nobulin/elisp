@@ -67,10 +67,13 @@
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
 		   (current-buffer)))
-	 (thread (make-thread func name))
+	 (funclist (if (stringp (nth 2 func))
+		       (progn (setf (nth 2 func) '(wait-start-task)) func)
+		     (list (nth 0 func) (nth 1 func) '(wait-start-task) (nthcdr 2 func))))
+	 (thread (make-thread funclist name))
 	 (instance (make-instance 'task
 				  :tname name
-				  :tfunc func
+				  :tfunc funclist
 				  :targs args
 				  :tcvar nil
 				  :tlock mutex

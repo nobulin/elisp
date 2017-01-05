@@ -7,7 +7,6 @@
 	 (args (get-task-param 'args))
 	 (kind (car args))
 	 (stime (cadr args)))
-    (wait-start-task)
     (if (eq kind 'call)
 	(call-process-shell-command (format "echo %s; sleep %d" task-name stime))
       (start-process-shell-command (format "echo %s; sleep %d" task-name stime)))

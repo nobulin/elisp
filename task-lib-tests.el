@@ -8,7 +8,6 @@
 		"task-1"
 		'(lambda ()
 		   (let* ((args (get-task-param 'args)))
-		     (wait-start-task)
 		     (task-cond-wait global-mutex '(not global-variable))
 		     (set-task-param 'rslt args)))
 		1 2))
@@ -16,7 +15,6 @@
 		"task-2"
 		'(lambda ()
 		   (let* ((args (get-task-param 'args)))
-		     (wait-start-task)
 		     (task-cond-notify global-mutex '(setq global-variable t))
 		     (set-task-param 'rslt args)))
 		3 4)))

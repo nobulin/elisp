@@ -14,7 +14,6 @@
   (let* ((name (get-task-param 'name))
 	 (gexp (car (get-task-param 'args)))
 	 (buffer (get-task-param 'buff)))
-    (wait-start-task)
     (put-debug-log (format "find-grep-buffer(gexp) - %s" gexp))
     (with-temp-buffer
       (insert-file-contents name)
