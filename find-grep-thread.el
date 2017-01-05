@@ -11,6 +11,7 @@
     (sort files 'string<)))
 
 (defun find-grep-buffer ()
+  (wait-count-task)
   (let* ((name (get-task-param 'name))
 	 (gexp (car (get-task-param 'args)))
 	 (buffer (get-task-param 'buff)))

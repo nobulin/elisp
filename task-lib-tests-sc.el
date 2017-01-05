@@ -3,6 +3,7 @@
 (load (expand-file-name "./task-lib") nil t)
 
 (defun process-sample ()
+  (wait-start-task)
   (let* ((task-name (get-task-param 'name))
 	 (args (get-task-param 'args))
 	 (kind (car args))
@@ -12,11 +13,19 @@
       (start-process-shell-command (format "echo %s; sleep %d" task-name stime)))
     (put-debug-log (format "%s is exit" task-name))))
 
-(create-task "process-1" 'process-sample 'start 10)
-(create-task "process-2" 'process-sample 'start 10)
-(create-task "process-3" 'process-sample 'start 10)
-(create-task "process-4" 'process-sample 'start 10)
-(create-task "process-5" 'process-sample 'start 10)
+(create-task "process-1" 'process-sample 'call 10)
+(create-task "process-2" 'process-sample 'call 10)
+(create-task "process-3" 'process-sample 'call 10)
+(create-task "process-4" 'process-sample 'call 10)
+(create-task "process-5" 'process-sample 'call 10)
+
+(while (not (and (thread-alive-p (get-task-thrd (get-task "process-1")))
+		 (thread-alive-p (get-task-thrd (get-task "process-2")))
+		 (thread-alive-p (get-task-thrd (get-task "process-3")))
+		 (thread-alive-p (get-task-thrd (get-task "process-4")))
+		 (thread-alive-p (get-task-thrd (get-task "process-5")))))
+  (sit-for 0.5)
+  (thread-yield))
 
 (start-task "process-1")
 (start-task "process-2")

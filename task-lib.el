@@ -63,17 +63,18 @@
 
 ;; Create a thread and instance of task object
 (defun create-task (name func &rest args)
+  (put-debug-log (format "func = %S" func))
   (let* ((mutex (make-mutex name))
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
 		   (current-buffer)))
-	 (funclist (if (stringp (nth 2 func))
-		       (progn (setf (nth 2 func) '(wait-start-task)) func)
-		     (list (nth 0 func) (nth 1 func) '(wait-start-task) (nthcdr 2 func))))
-	 (thread (make-thread funclist name))
+	 ;; (funclist (if (stringp (nth 2 func))
+	 ;; 	       (progn (setf (nth 2 func) '(wait-start-task)) func)
+	 ;; 	     (list (nth 0 func) (nth 1 func) '(wait-start-task) (car (nthcdr 2 func)))))
+	 (thread (make-thread func name))
 	 (instance (make-instance 'task
 				  :tname name
-				  :tfunc funclist
+				  :tfunc func
 				  :targs args
 				  :tcvar nil
 				  :tlock mutex
