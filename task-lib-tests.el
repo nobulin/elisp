@@ -7,8 +7,7 @@
 (let* ((task-1 (create-task
 		"task-1"
 		'(lambda ()
-		   (wait-start-task)
-		   (let* ((args (get-task-param 'args)))
+		   (let ((args (get-task-param 'args)))
 		     (task-cond-wait global-mutex '(not global-variable))
 		     (set-task-param 'rslt args))
 		   (put-debug-log "exit task-1"))
@@ -16,8 +15,7 @@
        (task-2 (create-task
 		"task-2"
 		'(lambda ()
-		   (wait-start-task)
-		   (let* ((args (get-task-param 'args)))
+		   (let ((args (get-task-param 'args)))
 		     (task-cond-notify global-mutex '(setq global-variable t))
 		     (set-task-param 'rslt args))
 		   (put-debug-log "exit task-2"))

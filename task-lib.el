@@ -13,7 +13,7 @@
 (defun put-debug-log (string)
   (let ((mes (format "%s - %s" (format-time-string "%H:%M:%S.%6N") string)))
     (if noninteractive
-	(message mes)
+	(message "%s" mes)
       (with-current-buffer debug-buffer
 	(insert-before-markers mes "\n")))))
 
@@ -61,20 +61,25 @@
 	 (method (intern (concat "set-task-" slot-name))))
     (funcall method tid value)))
 
+(defun task-func-sym (func)
+  (if (listp func) func
+    (symbol-function func)))
+
 ;; Create a thread and instance of task object
 (defun create-task (name func &rest args)
-  (put-debug-log (format "func = %S" func))
+  (put-debug-log (format "create-task(func) = %S" func))
   (let* ((mutex (make-mutex name))
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
 		   (current-buffer)))
-	 ;; (funclist (if (stringp (nth 2 func))
-	 ;; 	       (progn (setf (nth 2 func) '(wait-start-task)) func)
-	 ;; 	     (list (nth 0 func) (nth 1 func) '(wait-start-task) (car (nthcdr 2 func)))))
-	 (thread (make-thread func name))
+	 (funclist (let ((f (task-func-sym func)))
+		     (if (stringp (nth 2 f))
+			 (progn (setf (nth 2 f) '(wait-start-task)) f)
+		       (list (nth 0 f) (nth 1 f) '(wait-start-task) (car (nthcdr 2 f))))))
+	 (thread (make-thread funclist name))
 	 (instance (make-instance 'task
 				  :tname name
-				  :tfunc func
+				  :tfunc funclist
 				  :targs args
 				  :tcvar nil
 				  :tlock mutex

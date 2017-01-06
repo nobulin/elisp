@@ -3,14 +3,15 @@
 (load (expand-file-name "./task-lib") nil t)
 
 (defun process-sample ()
-  (wait-start-task)
   (let* ((task-name (get-task-param 'name))
 	 (args (get-task-param 'args))
 	 (kind (car args))
 	 (stime (cadr args)))
     (if (eq kind 'call)
-	(call-process-shell-command (format "echo %s; sleep %d" task-name stime))
-      (start-process-shell-command (format "echo %s; sleep %d" task-name stime)))
+	(call-process-shell-command
+	 (format "echo %s; sleep %d" task-name stime))
+      (start-process-shell-command
+       (format "echo %s; sleep %d" task-name stime)))
     (put-debug-log (format "%s is exit" task-name))))
 
 (create-task "process-1" 'process-sample 'call 10)

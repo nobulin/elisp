@@ -11,7 +11,6 @@
     (sort files 'string<)))
 
 (defun find-grep-buffer ()
-  (wait-count-task)
   (let* ((name (get-task-param 'name))
 	 (gexp (car (get-task-param 'args)))
 	 (buffer (get-task-param 'buff)))
@@ -35,9 +34,9 @@
   (let* ((files (find-type-f-lisp dir fexp))
 	 (buffer (generate-new-buffer "*Find-Grep-Thread*")))
     (dolist (file files)
-      (let* ((task-id (create-task file 'find-grep-buffer gexp)))
-	(start-task file)
-	(wait-count-task 3)))
+      (create-task file 'find-grep-buffer gexp)
+      (start-task file)
+      (wait-count-task 3))
     (with-current-buffer buffer
       (goto-char (point-min))
       (dolist (file files)
