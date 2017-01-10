@@ -23,6 +23,7 @@
 ;; Management of some threads
 (defclass task ()
   ((tname :initarg :tname)
+   (tftyp :initarg :tftyp)
    (tfunc :initarg :tfunc)
    (targs :initarg :targs)
    (tcvar :initarg :tcvar)
@@ -33,6 +34,7 @@
 
 ;; Define accessors
 (defmethod get-task-name ((obj task)) (oref obj tname))
+(defmethod get-task-ftyp ((obj task)) (oref obj tftyp))
 (defmethod get-task-func ((obj task)) (oref obj tfunc))
 (defmethod get-task-args ((obj task)) (oref obj targs))
 (defmethod get-task-cvar ((obj task)) (oref obj tcvar))
@@ -41,6 +43,7 @@
 (defmethod get-task-thrd ((obj task)) (oref obj tthrd))
 (defmethod get-task-rslt ((obj task)) (oref obj trslt))
 (defmethod set-task-name ((obj task) value) (oset obj tname value))
+(defmethod set-task-ftyp ((obj task) value) (oset obj tftyp value))
 (defmethod set-task-func ((obj task) value) (oset obj tfunc value))
 (defmethod set-task-args ((obj task) value) (oset obj targs value))
 (defmethod set-task-cvar ((obj task) value) (oset obj tcvar value))
@@ -49,6 +52,7 @@
 (defmethod set-task-thrd ((obj task) value) (oset obj tthrd value))
 (defmethod set-task-rslt ((obj task) value) (oset obj trslt value))
 
+;; Current thread accessors
 (defun get-task-param (slot)
   (let* ((tid (get-task))
 	 (slot-name (symbol-name slot))
@@ -61,25 +65,37 @@
 	 (method (intern (concat "set-task-" slot-name))))
     (funcall method tid value)))
 
-(defun task-func-sym (func)
-  (if (listp func) func
-    (symbol-function func)))
-
-;; Create a thread and instance of task object
+;; Create a thread and instance of task class
 (defun create-task (name func &rest args)
   (put-debug-log (format "create-task(func) = %S" func))
   (let* ((mutex (make-mutex name))
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
 		   (current-buffer)))
-	 (funclist (let ((f (task-func-sym func)))
-		     (if (stringp (nth 2 f))
-			 (progn (setf (nth 2 f) '(wait-start-task)) f)
-		       (list (nth 0 f) (nth 1 f) '(wait-start-task) (car (nthcdr 2 f))))))
-	 (thread (make-thread funclist name))
+	 (functype '(lambda (func)
+		      (if (listp func) t
+			(let ((fs (with-output-to-string
+				    (prin1 (symbol-function func)))))
+			  (and (string-match "^(" fs) t)))))
+	 (ftype (funcall functype func))
+	 (funcl (let ((f (and ftype (if (listp func)
+					func
+				      (symbol-function func))))
+		      (pos 2)
+		      (exp '(wait-start-task)))
+		  (put-debug-log (format "f = %S" f))
+		  (if f (if (stringp (nth pos f))
+			    (setf (nth pos f) exp)
+			  (let ((front (reverse (nthcdr (- (length f) pos)
+							(reverse f))))
+				(back (nthcdr pos f)))
+			    (nconc front (list exp) back)))
+		    func)))
+	 (thread (make-thread funcl name))
 	 (instance (make-instance 'task
 				  :tname name
-				  :tfunc funclist
+				  :tftyp ftype
+				  :tfunc funcl
 				  :targs args
 				  :tcvar nil
 				  :tlock mutex
@@ -100,23 +116,25 @@
 	(return obj)))))
 
 ;; Start waiting thread by wait-start-task
+;; NOP if thread function is byte-code
 (defun start-task (name)
   (put-debug-log (format "start-task(name) - %s" name))
   (let ((tid (get-task name)))
-    (with-mutex (get-task-lock tid) (set-task-cvar tid t))))
+    (and (get-task-func tid)
+	 (with-mutex (get-task-lock tid) (set-task-cvar tid t)))))
 
 ;; Wait until start-task is called
 (defun wait-start-task ()
   (put-debug-log (format "wait-start-task() - %S" (get-task)))
   (while (with-mutex (get-task-param 'lock) (not (get-task-param 'cvar)))
-    (sit-for 0.5)
+    (sit-for 0.1)
     (thread-yield)))
 
 (defun exit-task (name)
   (put-debug-log (format "exit-task(name) - %s" name))
   (let ((tid (get-task name)))
     (while (thread-alive-p (get-task-thrd tid))
-      (sit-for 0.5)
+      (sit-for 0.1)
       (thread-yield))
     (kill-buffer (get-task-buff tid))
     (setq task-list (delete tid task-list))))
@@ -125,7 +143,7 @@
 (defun wait-count-task (count)
   (put-debug-log (format "wait-count-task(count) - %d" count))
   (while (< count (1- (length (all-threads))))
-    (sit-for 0.5)
+    (sit-for 0.1)
     (thread-yield)))
 
 ;; Temporary measure for condition-wait
