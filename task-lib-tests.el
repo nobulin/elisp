@@ -28,8 +28,10 @@
 	     (thread-alive-p (get-task-thrd (get-task "task-2"))))
     (sit-for 0.5)
     (thread-yield))
-  (put-debug-log (format "task-1 result - %S(%S)" (get-task-rslt (get-task "task-1")) (get-task "task-1")))
-  (put-debug-log (format "task-2 result - %S(%S)" (get-task-rslt (get-task "task-2")) (get-task "task-2")))
+  (put-debug-log (format "task-1 result - %S(%S)"
+			 (get-task-rslt (get-task "task-1")) (get-task "task-1")))
+  (put-debug-log (format "task-2 result - %S(%S)"
+			 (get-task-rslt (get-task "task-2")) (get-task "task-2")))
   (exit-task "task-1")
   (exit-task "task-2")
   (pop-to-buffer debug-buffer))

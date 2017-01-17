@@ -83,7 +83,6 @@
 				      (symbol-function func))))
 		      (pos 2)
 		      (exp '(wait-start-task)))
-		  (put-debug-log (format "f = %S" f))
 		  (if f (if (stringp (nth pos f))
 			    (setf (nth pos f) exp)
 			  (let ((front (reverse (nthcdr (- (length f) pos)
@@ -130,6 +129,7 @@
     (sit-for 0.1)
     (thread-yield)))
 
+;; Terminate task and task instance release
 (defun exit-task (name)
   (put-debug-log (format "exit-task(name) - %s" name))
   (let ((tid (get-task name)))
@@ -138,6 +138,19 @@
       (thread-yield))
     (kill-buffer (get-task-buff tid))
     (setq task-list (delete tid task-list))))
+
+;; Create, start and exit task
+(defun sync-task (name func &rest args)
+  (put-debug-log (format "sync-task(name,func,args) - %S,%S,%S" name func args))
+  (apply 'create-task name func args)
+  (while (not (thread-alive-p (get-task-thrd (get-task name))))
+    (sit-for 0.1)
+    (thread-yield))
+  (start-task name)
+  (while (thread-alive-p (get-task-thrd (get-task name)))
+    (sit-for 0.1)
+    (thread-yield))
+  (exit-task name))
 
 ;; Multiplex number for not starting thread too much
 (defun wait-count-task (count)
