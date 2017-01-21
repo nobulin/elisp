@@ -67,7 +67,6 @@
 
 ;; Create a thread and instance of task class
 (defun create-task (name func &rest args)
-  (put-debug-log (format "create-task(func) = %S" func))
   (let* ((mutex (make-mutex name))
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
@@ -83,7 +82,6 @@
 				      (symbol-function func))))
 		      (pos 2)
 		      (exp '(wait-start-task)))
-		  (put-debug-log (format "f = %S" f))
 		  (if f (if (stringp (nth pos f))
 			    (setf (nth pos f) exp)
 			  (let ((front (reverse (nthcdr (- (length f) pos)
@@ -120,7 +118,7 @@
 (defun start-task (name)
   (put-debug-log (format "start-task(name) - %s" name))
   (let ((tid (get-task name)))
-    (and (get-task-func tid)
+    (and (get-task-ftyp tid)
 	 (with-mutex (get-task-lock tid) (set-task-cvar tid t)))))
 
 ;; Wait until start-task is called
@@ -133,9 +131,8 @@
 (defun exit-task (name)
   (put-debug-log (format "exit-task(name) - %s" name))
   (let ((tid (get-task name)))
-    (while (thread-alive-p (get-task-thrd tid))
-      (sit-for 0.1)
-      (thread-yield))
+    (and (thread-alive-p (get-task-thrd tid))
+	 (thread-signal (get-task-thrd tid)))
     (kill-buffer (get-task-buff tid))
     (setq task-list (delete tid task-list))))
 
