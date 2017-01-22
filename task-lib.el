@@ -27,6 +27,7 @@
    (tfunc :initarg :tfunc)
    (targs :initarg :targs)
    (tcvar :initarg :tcvar)
+   (tgvar :initarg :tgvar)
    (tlock :initarg :tlock)
    (tbuff :initarg :tbuff)
    (tthrd :initarg :tthrd)
@@ -38,6 +39,7 @@
 (defmethod get-task-func ((obj task)) (oref obj tfunc))
 (defmethod get-task-args ((obj task)) (oref obj targs))
 (defmethod get-task-cvar ((obj task)) (oref obj tcvar))
+(defmethod get-task-gvar ((obj task)) (oref obj tgvar))
 (defmethod get-task-lock ((obj task)) (oref obj tlock))
 (defmethod get-task-buff ((obj task)) (oref obj tbuff))
 (defmethod get-task-thrd ((obj task)) (oref obj tthrd))
@@ -47,6 +49,7 @@
 (defmethod set-task-func ((obj task) value) (oset obj tfunc value))
 (defmethod set-task-args ((obj task) value) (oset obj targs value))
 (defmethod set-task-cvar ((obj task) value) (oset obj tcvar value))
+(defmethod set-task-gvar ((obj task) value) (oset obj tgvar value))
 (defmethod set-task-lock ((obj task) value) (oset obj tlock value))
 (defmethod set-task-buff ((obj task) value) (oset obj tbuff value))
 (defmethod set-task-thrd ((obj task) value) (oset obj tthrd value))
@@ -68,6 +71,7 @@
 ;; Create a thread and instance of task class
 (defun create-task (name func &rest args)
   (let* ((mutex (make-mutex name))
+	 (condvar (make-condition-variable mutex name))
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
 		   (current-buffer)))
@@ -95,7 +99,8 @@
 				  :tftyp ftype
 				  :tfunc funcl
 				  :targs args
-				  :tcvar nil
+				  :tcvar condvar
+				  :tgvar nil
 				  :tlock mutex
 				  :tbuff buffer
 				  :tthrd thread
@@ -119,20 +124,23 @@
   (put-debug-log (format "start-task(name) - %s" name))
   (let ((tid (get-task name)))
     (and (get-task-ftyp tid)
-	 (with-mutex (get-task-lock tid) (set-task-cvar tid t)))))
+	 (with-mutex (get-task-lock tid)
+	   (set-task-gvar tid t)
+	   (condition-notify (get-task-cvar tid))))))
 
 ;; Wait until start-task is called
 (defun wait-start-task ()
   (put-debug-log (format "wait-start-task() - %S" (get-task)))
-  (while (with-mutex (get-task-param 'lock) (not (get-task-param 'cvar)))
-    (sit-for 0.1)
-    (thread-yield)))
+  (with-mutex (get-task-param 'lock)
+    (while (not (get-task-param 'gvar))
+      (condition-wait (get-task-param 'cvar)))
+    (set-task-param 'gvar nil)))
 
 (defun exit-task (name)
   (put-debug-log (format "exit-task(name) - %s" name))
   (let ((tid (get-task name)))
     (and (thread-alive-p (get-task-thrd tid))
-	 (thread-signal (get-task-thrd tid)))
+	 (thread-signal (get-task-thrd tid) 'error ""))
     (kill-buffer (get-task-buff tid))
     (setq task-list (delete tid task-list))))
 
@@ -144,14 +152,17 @@
     (thread-yield)))
 
 ;; Temporary measure for condition-wait
-;; sexp is reference to global variable
-(defun task-cond-wait (lock sexp)
-  (put-debug-log (format "task-cond-wait(lock,sexp) - %S,%S" lock sexp))
-  (while (with-mutex lock (eval sexp))
-    (thread-yield)))
+(defun task-cond-wait (name)
+  (put-debug-log (format "task-cond-wait(name) - %S" name))
+  (let ((tid (get-task name)))
+    (with-mutex (get-task-lock tid)
+      (while (not (get-task-gvar tid))
+	(condition-wait (get-task-cvar tid))))))
 
 ;; Temporary measure for condition-notify
-;; sexp is setting to global variable
-(defun task-cond-notify (lock sexp)
-  (put-debug-log (format "task-cond-notify(lock,sexp) - %S,%S" lock sexp))
-  (with-mutex lock (eval sexp)))
+(defun task-cond-notify (name)
+  (put-debug-log (format "task-cond-notify(name) - %S" name))
+  (let ((tid (get-task name)))
+    (with-mutex (get-task-lock tid)
+      (set-task-gvar tid t)
+      (condition-notify (get-task-cvar tid)))))
