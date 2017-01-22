@@ -22,8 +22,12 @@
   (sit-for 5)
   (start-task "task-2")
   (sit-for 5)
-  (put-debug-log (format "task-1 result - %S(%S)" (get-task-rslt (get-task "task-1")) (get-task "task-1")))
+  (put-debug-log (format "task-1 result - %S(%S)"
+			 (get-task-rslt (get-task "task-1"))
+			 (get-task "task-1")))
   (sit-for 5)
-  (put-debug-log (format "task-2 result - %S(%S)" (get-task-rslt (get-task "task-2")) (get-task "task-2")))
+  (put-debug-log (format "task-2 result - %S(%S)"
+			 (get-task-rslt (get-task "task-2"))
+			 (get-task "task-2")))
   (exit-task "task-1")
   (exit-task "task-2"))
