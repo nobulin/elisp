@@ -14,12 +14,11 @@
   (let* ((name (get-task-param 'name))
 	 (gexp (car (get-task-param 'args)))
 	 (buffer (get-task-param 'buff)))
-    (put-debug-log (format "find-grep-buffer(gexp) - %s" gexp))
+    (put-debug-log (format "find-grep-buffer(name) - %s" name))
     (with-temp-buffer
       (insert-file-contents name)
       (goto-char (point-min))
       (while (re-search-forward gexp nil t)
-	(sit-for 0.1)
 	(let ((line (count-lines (point-min) (point)))
 	      (found (buffer-substring-no-properties
 		      (line-beginning-position)
@@ -34,9 +33,11 @@
   (let* ((files (find-type-f-lisp dir fexp))
 	 (buffer (generate-new-buffer "*Find-Grep-Thread*")))
     (dolist (file files)
-      (create-task file 'find-grep-buffer gexp)
-      (start-task file)
-      (wait-count-task 3))
+      (let ((tid (create-task file 'find-grep-buffer gexp)))
+	(while (not (thread-alive-p (get-task-thrd tid)))
+	  (thread-yield)))
+      (start-task file))
+    (wait-exec-task (expand-file-name dir))
     (with-current-buffer buffer
       (goto-char (point-min))
       (dolist (file files)

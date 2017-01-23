@@ -147,7 +147,8 @@
 
 ;; Create, start and exit task
 (defun sync-task (name func &rest args)
-  (put-debug-log (format "sync-task(name,func,args) - %S,%S,%S" name func args))
+  (put-debug-log (format "sync-task(name,func,args) - %S,%S,%S"
+			 name func args))
   (apply 'create-task name func args)
   (while (not (thread-alive-p (get-task-thrd (get-task name))))
     (sit-for 0.1)
@@ -159,9 +160,18 @@
   (exit-task name))
 
 ;; Multiplex number for not starting thread too much
-(defun wait-count-task (count)
-  (put-debug-log (format "wait-count-task(count) - %d" count))
-  (while (< count (1- (length (all-threads))))
+(defun wait-exec-task (name)
+  (put-debug-log (format "wait-exec-task(name) - %S" name))
+  (while (not (zerop (let ((nlist
+			    (mapcar
+			     #'(lambda (thr)
+				 (let ((thn (thread-name thr)))
+				   (if (and (stringp thn)
+					    (string-match name thn))
+				       1
+				     0)))
+			     (all-threads))))
+		       (apply '+ nlist))))
     (sit-for 0.1)
     (thread-yield)))
 
