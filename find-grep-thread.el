@@ -33,9 +33,7 @@
   (let* ((files (find-type-f-lisp dir fexp))
 	 (buffer (generate-new-buffer "*Find-Grep-Thread*")))
     (dolist (file files)
-      (let ((tid (create-task file 'find-grep-buffer gexp)))
-	(while (not (thread-alive-p (get-task-thrd tid)))
-	  (thread-yield)))
+      (create-task file 'find-grep-buffer gexp)
       (start-task file))
     (wait-exec-task (expand-file-name dir))
     (with-current-buffer buffer

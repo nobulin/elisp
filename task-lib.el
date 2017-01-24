@@ -105,6 +105,7 @@
 				  :tbuff buffer
 				  :tthrd thread
 				  :trslt nil)))
+    (while (not (thread-alive-p thread)) (thread-yield))
     (put-debug-log (format "create-task(instance) - %S" instance))
     (push instance task-list)
     instance))
