@@ -70,6 +70,7 @@
 
 ;; Create a thread and instance of task class
 (defun create-task (name func &rest args)
+  (put-debug-log (format "create-task(name) - %s" name))
   (let* ((mutex (make-mutex name))
 	 (condvar (make-condition-variable mutex name))
 	 (buffer (with-current-buffer (get-buffer-create name)
@@ -106,7 +107,6 @@
 				  :tthrd thread
 				  :trslt nil)))
     (while (not (thread-alive-p thread)) (thread-yield))
-    (put-debug-log (format "create-task(instance) - %S" instance))
     (push instance task-list)
     instance))
 
@@ -131,7 +131,7 @@
 
 ;; Wait until start-task is called
 (defun wait-start-task ()
-  (put-debug-log (format "wait-start-task() - %S" (get-task)))
+  (put-debug-log (format "wait-start-task() - %s" (get-task-param 'name)))
   (with-mutex (get-task-param 'lock)
     (while (not (get-task-param 'gvar))
       (condition-wait (get-task-param 'cvar)))
@@ -162,7 +162,7 @@
 
 ;; Multiplex number for not starting thread too much
 (defun wait-exec-task (name)
-  (put-debug-log (format "wait-exec-task(name) - %S" name))
+  (put-debug-log (format "wait-exec-task(name) - %s" name))
   (while (not (zerop (let ((nlist
 			    (mapcar
 			     #'(lambda (thr)
