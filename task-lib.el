@@ -13,7 +13,7 @@
 (defun put-debug-log (string)
   (let ((mes (format "%s - %s" (format-time-string "%H:%M:%S.%6N") string)))
     (if noninteractive
-	(message "%s" mes)
+	(and (string= "DEB" (getenv "DEBUG")) (message "%s" mes))
       (with-current-buffer debug-buffer
 	(insert-before-markers mes "\n")))))
 
