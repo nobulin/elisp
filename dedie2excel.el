@@ -1,7 +1,7 @@
 
 (defvar dedie2excel-top-dir
   "define path string, top directory of dedie8 data"
-  ""
+  nil
   )
 
 (defvar dedie2excel-save-dir
