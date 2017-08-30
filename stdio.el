@@ -40,11 +40,12 @@
 	(erase-buffer) (current-buffer)))
 
 (defun stdio-exit ()
-  (while (get-process "*STDIO*") (sit-for 1))
-  (call-process-shell-command
-   (format "test -p %s && /bin/rm -f %s"
-	   stdio-fifo-name stdio-fifo-name))
-  (and (not noninteractive) (pop-to-buffer stdio-stdout-buffer)))
+  (save-excursion
+    (kill-process (get-process "*STDIO*"))
+    (call-process-shell-command
+     (format "test -p %s && /bin/rm -f %s"
+	     stdio-fifo-name stdio-fifo-name))
+    (and (not noninteractive) (pop-to-buffer stdio-stdout-buffer))))
 
 (when (not noninteractive)
   (start-process-shell-command
