@@ -37,28 +37,29 @@
 
 (setq stdio-stdout-buffer
       (with-current-buffer (get-buffer-create "*STDOUT*")
-	(erase-buffer) (current-buffer)))
+	(setq truncate-lines t) (erase-buffer) (current-buffer)))
 
 (defun stdio-exit ()
   (save-excursion
-    (kill-process (get-process "*STDIO*"))
+    (let ((proc (get-process "*STDIO*")))
+      (and proc (kill-process proc)))
     (call-process-shell-command
      (format "test -p %s && /bin/rm -f %s"
 	     stdio-fifo-name stdio-fifo-name))
     (and (not noninteractive) (pop-to-buffer stdio-stdout-buffer))))
 
 (when (not noninteractive)
-  (start-process-shell-command
-   "*COMMAND-FOR-INPUT*"
-   nil
-   (format "%s > %s"
-	   (read-string "INPUT COMMAND: ") stdio-fifo-name)))
+  (let* ((input (read-string "INPUT COMMAND: "))
+	 (command (if (string= "" input) "echo -n" input)))
+    (start-process-shell-command
+     "*COMMAND-FOR-INPUT*" nil
+     (format "%s > %s" command stdio-fifo-name))))
 
 (defun getchar ()
   (with-current-buffer stdio-input-buffer
     (goto-char stdio-stdin-point)
     (while (and (eobp) (get-process "*STDIO*"))
-      (sit-for 1) (goto-char stdio-stdin-point))
+      (sit-for 0.1) (goto-char stdio-stdin-point))
     (prog1 (following-char)
       (or (eobp) (forward-char))
       (setq stdio-stdin-point (point)))))
