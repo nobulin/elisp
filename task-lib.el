@@ -23,7 +23,6 @@
 ;; Management of some threads
 (defclass task ()
   ((tname :initarg :tname)
-   (tftyp :initarg :tftyp)
    (tfunc :initarg :tfunc)
    (targs :initarg :targs)
    (tcvar :initarg :tcvar)
@@ -35,7 +34,6 @@
 
 ;; Define accessors
 (defmethod get-task-name ((obj task)) (oref obj tname))
-(defmethod get-task-ftyp ((obj task)) (oref obj tftyp))
 (defmethod get-task-func ((obj task)) (oref obj tfunc))
 (defmethod get-task-args ((obj task)) (oref obj targs))
 (defmethod get-task-cvar ((obj task)) (oref obj tcvar))
@@ -45,7 +43,6 @@
 (defmethod get-task-thrd ((obj task)) (oref obj tthrd))
 (defmethod get-task-rslt ((obj task)) (oref obj trslt))
 (defmethod set-task-name ((obj task) value) (oset obj tname value))
-(defmethod set-task-ftyp ((obj task) value) (oset obj tftyp value))
 (defmethod set-task-func ((obj task) value) (oset obj tfunc value))
 (defmethod set-task-args ((obj task) value) (oset obj targs value))
 (defmethod set-task-cvar ((obj task) value) (oset obj tcvar value))
@@ -76,29 +73,12 @@
 	 (buffer (with-current-buffer (get-buffer-create name)
 		   (erase-buffer)
 		   (current-buffer)))
-	 (functype '(lambda (func)
-		      (if (listp func) t
-			(let ((fs (with-output-to-string
-				    (prin1 (symbol-function func)))))
-			  (and (string-match "^(" fs) t)))))
-	 (ftype (funcall functype func))
-	 (funcl (let ((f (and ftype (if (listp func)
-					func
-				      (symbol-function func))))
-		      (pos 2)
-		      (exp '(wait-start-task)))
-		  (if f (if (stringp (nth pos f))
-			    (setf (nth pos f) exp)
-			  (let ((front (reverse (nthcdr (- (length f) pos)
-							(reverse f))))
-				(back (nthcdr pos f)))
-			    (nconc front (list exp) back)))
-		    func)))
-	 (thread (make-thread funcl name))
+	 (thread (progn
+		   (advice-add func :before 'wait-start-task)
+		   (make-thread func name)))
 	 (instance (make-instance 'task
 				  :tname name
-				  :tftyp ftype
-				  :tfunc funcl
+				  :tfunc func
 				  :targs args
 				  :tcvar condvar
 				  :tgvar nil
@@ -120,14 +100,12 @@
 	(return obj)))))
 
 ;; Start waiting thread by wait-start-task
-;; NOP if thread function is byte-code
 (defun start-task (name)
   (put-debug-log (format "start-task(name) - %s" name))
   (let ((tid (get-task name)))
-    (and (get-task-ftyp tid)
-	 (with-mutex (get-task-lock tid)
-	   (set-task-gvar tid t)
-	   (condition-notify (get-task-cvar tid))))))
+    (with-mutex (get-task-lock tid)
+      (set-task-gvar tid t)
+      (condition-notify (get-task-cvar tid)))))
 
 ;; Wait until start-task is called
 (defun wait-start-task ()
