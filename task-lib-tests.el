@@ -1,33 +1,37 @@
 
-(load (expand-file-name "./task-lib") nil t)
+(require 'task-lib)
 
-(let* ((task-1 (create-task
-		"task-1"
-		'(lambda ()
-		   (let ((args (get-task-param 'args)))
-		     (task-cond-wait "task-1")
-		     (set-task-param 'rslt args))
-		   (put-debug-log "exit task-1"))
-		1 2))
-       (task-2 (create-task
-		"task-2"
-		'(lambda ()
-		   (let ((args (get-task-param 'args)))
-		     (task-cond-notify "task-1")
-		     (set-task-param 'rslt args))
-		   (put-debug-log "exit task-2"))
-		3 4)))
+(defun task-func-1 ()
+  (put-debug-log "start task-1")
+  (let* ((obj (get-task "task-1"))
+	 (args (task-targs obj)))
+    (task-cond-wait "task-1")
+    (setf (task-trslt obj) args))
+  (put-debug-log "exit task-1"))
+
+(defun task-func-2 ()
+  (put-debug-log "start task-2")
+  (let* ((obj (get-task "task-2"))
+	 (args (task-targs obj)))
+    (task-cond-notify "task-1")
+    (setf (task-trslt obj) args))
+  (put-debug-log "exit task-2"))
+
+(let* ((task-1 (create-task "task-1" 'task-func-1 1 2))
+       (task-2 (create-task "task-2" 'task-func-2 3 4)))
   (sit-for 5)
+  (put-debug-log (format "%S" (all-threads)))
+  (put-debug-log (format "%S" (thread-last-error)))
   (start-task "task-1")
   (sit-for 5)
   (start-task "task-2")
   (sit-for 5)
   (put-debug-log (format "task-1 result - %S(%S)"
-			 (get-task-rslt (get-task "task-1"))
+			 (task-trslt (get-task "task-1"))
 			 (get-task "task-1")))
   (sit-for 5)
   (put-debug-log (format "task-2 result - %S(%S)"
-			 (get-task-rslt (get-task "task-2"))
+			 (task-trslt (get-task "task-2"))
 			 (get-task "task-2")))
   (exit-task "task-1")
   (exit-task "task-2"))
