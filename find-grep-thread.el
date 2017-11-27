@@ -1,5 +1,5 @@
 
-(load (expand-file-name "./task-lib") nil t)
+(require 'task-lib)
 
 (defun find-type-f-lisp (directory fexp)
   (let (files dirs (current directory) (match "[^.]$") (case-fold-search nil))
@@ -11,9 +11,10 @@
     (sort files 'string<)))
 
 (defun find-grep-buffer ()
-  (let* ((name (get-task-param 'name))
-	 (gexp (car (get-task-param 'args)))
-	 (buffer (get-task-param 'buff)))
+  (let* ((obj (get-task))
+	 (name (task-tname obj))
+	 (gexp (car (task-targs obj)))
+	 (buffer (task-tbuff obj)))
     (put-debug-log (format "find-grep-buffer(name) - %s" name))
     (with-temp-buffer
       (insert-file-contents name)
@@ -39,8 +40,9 @@
     (with-current-buffer buffer
       (goto-char (point-min))
       (dolist (file files)
-	(let ((tbuff (get-task-buff (get-task file))))
+	(let ((tbuff (task-tbuff (get-task file))))
 	  (insert-before-markers (with-current-buffer tbuff (buffer-string)))
 	  (exit-task file)))
       (compilation-mode)
+      (goto-char (point-min))
       (pop-to-buffer (current-buffer)))))
