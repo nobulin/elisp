@@ -67,7 +67,6 @@
   (let ((obj (get-task)))
     (put-debug-log (format "wait-start-task() - %S" obj))
     (with-mutex (task-tlock obj)
-      (setf (task-tgvar obj) nil)
       (while (not (task-tgvar obj))
 	(put-debug-log (format "condition-wait(cvar) - %S" obj))
 	(condition-wait (task-tcvar obj))))))
