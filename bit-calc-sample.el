@@ -1,4 +1,10 @@
 
+(save-excursion
+  (with-temp-buffer
+    (calc)
+    (sit-for 0.5)
+    (self-insert-command 113)))
+
 (defun my-calc-number-format (number base &optional width)
   (let* ((str (format "10#%d" number))
 	 (numsharp (progn

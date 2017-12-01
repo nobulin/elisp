@@ -4,17 +4,18 @@
 
 (require 'cl)
 
-(defvar debug-buffer
-  (with-current-buffer (get-buffer-create "*debug-buffer*")
-    (erase-buffer)
-    (current-buffer)))
+(setq debug-buffer
+      (with-current-buffer (get-buffer-create "*debug-buffer*")
+	(erase-buffer)
+	(current-buffer)))
 
 (defun put-debug-log (string)
-  (let ((mes (format "%s - %s" (format-time-string "%H:%M:%S.%6N") string)))
-    (if noninteractive
-	(and (string= "DEB" (getenv "DEBUG")) (message "%s" mes))
-      (with-current-buffer debug-buffer
-	(insert-before-markers mes "\n")))))
+  (when (string= "DEB" (getenv "DEBUG"))
+    (let ((mes (format "%s - %s" (format-time-string "%H:%M:%S.%6N") string)))
+      (if noninteractive
+	  (message "%s" mes)
+	(with-current-buffer debug-buffer
+	  (insert-before-markers mes "\n"))))))
 
 (defvar task-list nil)
 (defun task-list-init () (setq task-list nil))
@@ -50,7 +51,7 @@
       instance)))
 
 (defun create-and-start-task (name func &rest args)
-  (prog1 (create-task name func &rest args)
+  (prog1 (apply 'create-task name func args)
     (start-task name)))
 
 ;; Obtain an instance that manages a thread

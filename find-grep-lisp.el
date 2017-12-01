@@ -11,7 +11,8 @@
 (defun find-grep-lisp (dir fexp gexp)
   (interactive "Ddir: \nsfilename regexp: \nssearch keyword: ")
   (let* ((files (find-type-f-lisp dir fexp))
-	 (buffer (generate-new-buffer "*Find-Grep-Lisp*")))
+	 (buffer (generate-new-buffer "*Find-Grep-Lisp*"))
+	 (case-fold-search t))
     (dolist (file files)
       (with-temp-buffer
 	(insert-file-contents file)

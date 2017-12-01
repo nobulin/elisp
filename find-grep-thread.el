@@ -14,7 +14,8 @@
   (let* ((obj (get-task))
 	 (name (task-tname obj))
 	 (gexp (car (task-targs obj)))
-	 (buffer (task-tbuff obj)))
+	 (buffer (task-tbuff obj))
+	 (case-fold-search t))
     (put-debug-log (format "find-grep-buffer(name) - %s" name))
     (with-temp-buffer
       (insert-file-contents name)
@@ -27,7 +28,7 @@
 			(forward-line)
 			(point)))))
 	  (with-current-buffer buffer
-	    (insert (format "%s:%d: %s" name line found))))))))
+	    (insert (format "%s:%d:%s" name line found))))))))
 
 (defun find-grep-thread (dir fexp gexp)
   (interactive "Ddir: \nsfilename regexp: \nssearch keyword: ")
